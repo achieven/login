@@ -4,7 +4,7 @@ var loginComponent, pageComponent
 
 
 var LoginComponent = React.createClass({
-    getInitialState: function(){
+    getInitialState: function () {
         return {
             username: this.props.username || '',
             password: this.props.password || '',
@@ -23,8 +23,10 @@ var LoginComponent = React.createClass({
                             <div className="col-xs-6">
                                 <label htmlFor="">Welcome! please sign in</label>
                                 <form id="loginForm">
-                                    <input type="text" className="form-control" id="username" value={this.state.username} onChange={this.handleChangeUsername}/>
-                                    <input type="password" className="form-control" id="password" value={this.state.password} onChange={this.handleChangePassword}/>
+                                    <input type="text" className="form-control" id="username"
+                                           value={this.state.username} onChange={this.handleChangeUsername}/>
+                                    <input type="password" className="form-control" id="password"
+                                           value={this.state.password} onChange={this.handleChangePassword}/>
                                     <button className="btn btn-info">Login</button>
                                 </form>
                                 <label htmlFor="" id="loginError">{this.state.loginError}</label>
@@ -37,13 +39,45 @@ var LoginComponent = React.createClass({
             </div>
         )
     },
-    handleChangeUsername: function(event){
+    handleChangeUsername: function (event) {
         this.setState({username: event.target.value});
     },
-    handleChangePassword: function(event){
+    handleChangePassword: function (event) {
         this.setState({password: event.target.value});
     },
+    getTokenAndRenderPage: function (token) {
+        $.ajax({
+            type: 'get',
+            url: "http://178.62.182.182/page",
+            data: {alt: 'json-in-script'},
+            beforeSend: function (xhr, settings) {
+                xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            },
+            success: function (data) {
+                $('#loginScreen').addClass('hide')
+                $('#pageScreen').removeClass('hide')
+                pageComponent.setState({
+                    image_url: data.image_url,
+                    text: data.text,
+                    title: data.title,
+                })
+                $('#logout').on('click', function (e) {
+                    $('#pageScreen').addClass('hide')
+                    pageComponent.setState({
+                        image_url: '',
+                        text: '',
+                        title: ''
+                    })
+                    $('#loginScreen').removeClass('hide')
+                })
+            }
+        });
+    },
+
     componentDidMount: function () {
+        if (window.localStorage.getItem('token')) {
+            this.getTokenAndRenderPage(window.localStorage.getItem('token'))
+        }
         var thisComponent = this, loginComponent = this
 
         $('#loginForm').unbind('submit').on('submit', function (e) {
@@ -58,42 +92,19 @@ var LoginComponent = React.createClass({
                 contentType: 'application/json',
                 data: JSON.stringify(data),
                 success: function (tokenObject) {
-                    function clearLoginPage(){
-                        $('#loginScreen').addClass('hide')
+                    function clearLoginPage() {
                         thisComponent.setState({
                             username: '',
                             password: '',
                             loginError: '',
                         })
                     }
+
                     clearLoginPage()
                     var token = tokenObject.token
+                    window.localStorage.setItem('token', token)
 
-                    $.ajax({
-                        type: 'get',
-                        url: "http://178.62.182.182/page",
-                        data: { alt: 'json-in-script'},
-                        beforeSend: function (xhr, settings) {
-                            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-                        },
-                        success: function (data) {
-                            $('#pageScreen').removeClass('hide')
-                            pageComponent.setState({
-                                image_url: data.image_url,
-                                text: data.text,
-                                title: data.title,
-                            })
-                            $('#logout').on('click', function(e){
-                                $('#pageScreen').addClass('hide')
-                                pageComponent.setState({
-                                    image_url: '',
-                                    text: '',
-                                    title: ''
-                                })
-                                $('#loginScreen').removeClass('hide')
-                            })
-                        }
-                    });
+                    thisComponent.getTokenAndRenderPage(token);
                 },
                 error: function (object, error, reason) {
                     thisComponent.setState({
@@ -104,8 +115,6 @@ var LoginComponent = React.createClass({
         })
     }
 })
-
-
 
 
 var PageComponent = React.createClass({
@@ -133,18 +142,18 @@ var PageComponent = React.createClass({
             </div>
         )
     },
-    componentDidMount: function(){
+    componentDidMount: function () {
         pageComponent = this
     }
 })
 
 var App = React.createClass({
-    render: function(){
+    render: function () {
         return (
-          <div>
-              <LoginComponent username="" password="" loginError=""> </LoginComponent>
-              <PageComponent image_url="" text="" title=""> </PageComponent>
-          </div> 
+            <div>
+                <LoginComponent username="" password="" loginError=""> </LoginComponent>
+                <PageComponent image_url="" text="" title=""> </PageComponent>
+            </div>
         )
     }
 })
